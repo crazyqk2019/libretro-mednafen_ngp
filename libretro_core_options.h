@@ -1,4 +1,4 @@
-#ifndef LIBRETRO_CORE_OPTIONS_H__
+﻿#ifndef LIBRETRO_CORE_OPTIONS_H__
 #define LIBRETRO_CORE_OPTIONS_H__
 
 #include <stdlib.h>
@@ -93,6 +93,47 @@ struct retro_core_option_definition option_defs_us[] = {
 /* RETRO_LANGUAGE_CHINESE_TRADITIONAL */
 
 /* RETRO_LANGUAGE_CHINESE_SIMPLIFIED */
+struct retro_core_option_definition option_defs_chs[] = {
+   {
+      "ngp_language",
+      "语言 (*)",
+      "游戏文字显示语言。\n(*) 需要重启内核。",
+      {
+         { "english",  "英语" },
+         { "japanese",  "日语" },
+         { NULL, NULL},
+      },
+      "english",
+   },
+   {
+      "ngp_sound_sample_rate",
+      "声音输出采样率",
+      "选择轻微的提升音质或提升性能。",
+      {
+         { "11025", NULL },
+         { "22050", NULL },
+         { "44100", NULL },
+         { "48000", NULL },
+         { "96000", NULL },
+         { "192000", NULL },
+         { "384000", NULL },
+         { NULL, NULL },
+      },
+      "44100",
+   },
+   {
+      "ngp_gfx_colors",
+      "色彩位深",
+      "24-bit位深更慢，且不是所有平台都有效。",
+      {
+         { "16bit", "千种色彩 (16-bit)" },
+         { "24bit", "百万种色彩 (24-bit)" },
+         { NULL, NULL },
+      },
+      "16bit"
+   },
+   { NULL, NULL, NULL, { NULL, NULL }, NULL },
+};
 
 /* RETRO_LANGUAGE_ESPERANTO */
 
@@ -125,7 +166,7 @@ struct retro_core_option_definition *option_defs_intl[RETRO_LANGUAGE_LAST] = {
    NULL,           /* RETRO_LANGUAGE_RUSSIAN */
    NULL,           /* RETRO_LANGUAGE_KOREAN */
    NULL,           /* RETRO_LANGUAGE_CHINESE_TRADITIONAL */
-   NULL,           /* RETRO_LANGUAGE_CHINESE_SIMPLIFIED */
+   option_defs_chs,/* RETRO_LANGUAGE_CHINESE_SIMPLIFIED */
    NULL,           /* RETRO_LANGUAGE_ESPERANTO */
    NULL,           /* RETRO_LANGUAGE_POLISH */
    NULL,           /* RETRO_LANGUAGE_VIETNAMESE */
