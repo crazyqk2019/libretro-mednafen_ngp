@@ -126,8 +126,8 @@ struct retro_core_option_definition option_defs_chs[] = {
       "色彩位深",
       "24-bit位深更慢，且不是所有平台都有效。",
       {
-         { "16bit", "千种色彩 (16-bit)" },
-         { "24bit", "百万种色彩 (24-bit)" },
+         { "16bit", "千色彩 (16-bit)" },
+         { "24bit", "百万色彩 (24-bit)" },
          { NULL, NULL },
       },
       "16bit"
