@@ -15,20 +15,21 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <boolean.h>
+#include <retro_inline.h>
 
-#include <vector>
-
-#include "mednafen.h"
-#include "driver.h"
-#include "general.h"
 #include "state.h"
 
-#define RLSB 		MDFNSTATE_RLSB	//0x80000000
+#define RLSB 		MDFNSTATE_RLSB	/* 0x80000000 */
 
-static inline void MDFN_en32lsb(uint8_t *buf, uint32_t morp)
+/* Forward declaration */
+int StateAction(StateMem *sm, int load, int data_only);
+
+static INLINE void MDFN_en32lsb(uint8_t *buf, uint32_t morp)
 {
    buf[0]=morp;
    buf[1]=morp>>8;
@@ -36,13 +37,13 @@ static inline void MDFN_en32lsb(uint8_t *buf, uint32_t morp)
    buf[3]=morp>>24;
 }
 
-static inline uint32_t MDFN_de32lsb(const uint8_t *morp)
+static INLINE uint32_t MDFN_de32lsb(const uint8_t *morp)
 {
    return(morp[0]|(morp[1]<<8)|(morp[2]<<16)|(morp[3]<<24));
 }
 
 #ifdef MSB_FIRST
-static inline void Endian_A64_Swap(void *src, uint32_t nelements)
+static INLINE void Endian_A64_Swap(void *src, uint32_t nelements)
 {
    uint32_t i;
    uint8_t *nsrc = (uint8_t *)src;
@@ -62,7 +63,7 @@ static inline void Endian_A64_Swap(void *src, uint32_t nelements)
    }
 }
 
-static inline void Endian_A32_Swap(void *src, uint32_t nelements)
+static INLINE void Endian_A32_Swap(void *src, uint32_t nelements)
 {
    uint32_t i;
    uint8_t *nsrc = (uint8_t *)src;
@@ -94,7 +95,7 @@ void Endian_A16_Swap(void *src, uint32_t nelements)
    }
 }
 
-static inline void FlipByteOrder(uint8_t *src, uint32_t count)
+static INLINE void FlipByteOrder(uint8_t *src, uint32_t count)
 {
    uint8_t *start=src;
    uint8_t *end=src+count-1;
@@ -202,10 +203,14 @@ int smem_read32le(StateMem *st, uint32_t *b)
    return(4);
 }
 
-static bool SubWrite(StateMem *st, SFORMAT *sf, const char *name_prefix = NULL)
+static bool SubWrite(StateMem *st, SFORMAT *sf, const char *name_prefix)
 {
-   while(sf->size || sf->name)	// Size can sometimes be zero, so also check for the text name.  These two should both be zero only at the end of a struct.
+   while(sf->size || sf->name)	/* Size can sometimes be zero, so also check for the text name.  These two should both be zero only at the end of a struct. */
    {
+      int slen;
+      char nameo[1 + 256];
+      int32_t bytesize;
+
       if(!sf->size || !sf->v)
       {
          sf++;
@@ -221,27 +226,16 @@ static bool SubWrite(StateMem *st, SFORMAT *sf, const char *name_prefix = NULL)
          continue;
       }
 
-      int32_t bytesize = sf->size;
-
-      char nameo[1 + 256];
-      int slen = sprintf(nameo + 1, "%s%s", name_prefix ? name_prefix : "", sf->name);
+      bytesize = sf->size;
+      slen     = sprintf(nameo + 1, "%s%s", name_prefix ? name_prefix : "", sf->name);
       nameo[0] = slen;
-
-      if(slen >= 255)
-      {
-         printf("Warning:  state variable name possibly too long: %s %s %s %d\n", sf->name, name_prefix, nameo, slen);
-         slen = 255;
-      }
 
       smem_write(st, nameo, 1 + nameo[0]);
       smem_write32le(st, bytesize);
 
 #ifdef MSB_FIRST
       /* Flip the byte order... */
-      if(sf->flags & MDFNSTATE_BOOL)
-      {
-
-      }
+      if(sf->flags & MDFNSTATE_BOOL) { }
       else if(sf->flags & MDFNSTATE_RLSB64)
          Endian_A64_Swap(sf->v, bytesize / sizeof(uint64_t));
       else if(sf->flags & MDFNSTATE_RLSB32)
@@ -252,14 +246,15 @@ static bool SubWrite(StateMem *st, SFORMAT *sf, const char *name_prefix = NULL)
          FlipByteOrder((uint8_t*)sf->v, bytesize);
 #endif
 
-      // Special case for the evil bool type, to convert bool to 1-byte elements.
-      // Don't do it if we're only saving the raw data.
+      /* Special case for the evil bool type, to convert 
+       * bool to 1-byte elements.
+       * Don't do it if we're only saving the raw data. */
       if(sf->flags & MDFNSTATE_BOOL)
       {
-         for(int32_t bool_monster = 0; bool_monster < bytesize; bool_monster++)
+         int32_t bool_monster;
+         for(bool_monster = 0; bool_monster < bytesize; bool_monster++)
          {
             uint8_t tmp_bool = ((bool *)sf->v)[bool_monster];
-            //printf("Bool write: %.31s\n", sf->name);
             smem_write(st, &tmp_bool, 1);
          }
       }
@@ -268,10 +263,7 @@ static bool SubWrite(StateMem *st, SFORMAT *sf, const char *name_prefix = NULL)
 
 #ifdef MSB_FIRST
       /* Now restore the original byte order. */
-      if(sf->flags & MDFNSTATE_BOOL)
-      {
-
-      }
+      if(sf->flags & MDFNSTATE_BOOL) { }
       else if(sf->flags & MDFNSTATE_RLSB64)
          Endian_A64_Swap(sf->v, bytesize / sizeof(uint64_t));
       else if(sf->flags & MDFNSTATE_RLSB32)
@@ -293,20 +285,24 @@ static int WriteStateChunk(StateMem *st, const char *sname, SFORMAT *sf)
    int32_t end_pos;
 
    uint8_t sname_tmp[32];
+   size_t sname_len = strlen(sname);
 
    memset(sname_tmp, 0, sizeof(sname_tmp));
-   memcpy((char *)sname_tmp, sname, 32);
+   memcpy((char *)sname_tmp, sname, (sname_len < 32) ? sname_len : 32);
 
-   if(strlen(sname) > 32)
+#ifndef NDEBUG
+   if(sname_len > 32)
       printf("Warning: section name is too long: %s\n", sname);
+#endif
 
    smem_write(st, sname_tmp, 32);
 
-   smem_write32le(st, 0);                // We'll come back and write this later.
+   /* We'll come back and write this later. */
+   smem_write32le(st, 0);                
 
    data_start_pos = st->loc;
 
-   if(!SubWrite(st, sf))
+   if(!SubWrite(st, sf, NULL))
       return(0);
 
    end_pos = st->loc;
@@ -331,7 +327,7 @@ static SFORMAT *FindSF(const char *name, SFORMAT *sf)
       }
 
       /* Link to another SFORMAT structure. */
-      if (sf->size == (uint32)~0) 
+      if (sf->size == (uint32_t)~0) 
       {
          SFORMAT *temp_sf = FindSF(name, (SFORMAT*)sf->v);
          if (temp_sf)
@@ -349,7 +345,7 @@ static SFORMAT *FindSF(const char *name, SFORMAT *sf)
    return NULL;
 }
 
-// Fast raw chunk reader
+/* Fast raw chunk reader */
 static void DOReadChunk(StateMem *st, SFORMAT *sf)
 {
    /* Size can sometimes be zero, so also check for the text name.  
@@ -366,7 +362,7 @@ static void DOReadChunk(StateMem *st, SFORMAT *sf)
          continue;
       }
 
-      if(sf->size == (uint32_t) ~0) // Link to another SFORMAT struct
+      if(sf->size == (uint32_t) ~0) /* Link to another SFORMAT struct */
       {
          DOReadChunk(st, (SFORMAT *)sf->v);
          sf++;
@@ -475,7 +471,7 @@ static int ReadStateChunk(StateMem *st, SFORMAT *sf, int size)
 }
 
 static int MDFNSS_StateAction_internal(StateMem *st, int load, int data_only,
-      SSDescriptor *section)
+      struct SSDescriptor *section)
 {
    if(load)
    {
@@ -492,7 +488,7 @@ static int MDFNSS_StateAction_internal(StateMem *st, int load, int data_only,
 
          total += tmp_size + 32 + 4;
 
-         // Yay, we found the section
+         /* Yay, we found the section */
          if(!strncmp(sname, section->name, 32))
          {
             if(!ReadStateChunk(st, section->sf, tmp_size))
@@ -519,7 +515,7 @@ static int MDFNSS_StateAction_internal(StateMem *st, int load, int data_only,
          return(0);
       }
 
-      if(!found && !section->optional) // Not found.  We are sad!
+      if(!found && !section->optional) /* Not found.  We are sad! */
       {
          printf("Section missing:  %.32s\n", section->name);
          return(0);
@@ -536,7 +532,7 @@ static int MDFNSS_StateAction_internal(StateMem *st, int load, int data_only,
 
 int MDFNSS_StateAction(void *st_p, int load, int data_only, SFORMAT *sf, const char *name, bool optional)
 {
-   SSDescriptor love;
+   struct SSDescriptor love;
    StateMem *st = (StateMem*)st_p;
 
    love.sf       = sf;
@@ -546,11 +542,12 @@ int MDFNSS_StateAction(void *st_p, int load, int data_only, SFORMAT *sf, const c
    return MDFNSS_StateAction_internal(st, load, 0, &love);
 }
 
-int MDFNSS_SaveSM(void *st_p, int, int, const void*, const void*, const void*)
+int MDFNSS_SaveSM(void *st_p, int a, int b, const void *c, const void *d, const void *e)
 {
+   static const char *header_magic = "MDFNSVST";
+   uint32_t sizy;
    uint8_t header[32];
    StateMem *st = (StateMem*)st_p;
-   static const char *header_magic = "MDFNSVST";
    int neowidth = 0, neoheight = 0;
 
    memset(header, 0, sizeof(header));
@@ -564,14 +561,14 @@ int MDFNSS_SaveSM(void *st_p, int, int, const void*, const void*, const void*)
    if(!StateAction(st, 0, 0))
       return(0);
 
-   uint32_t sizy = st->loc;
+   sizy = st->loc;
    smem_seek(st, 16 + 4, SEEK_SET);
    smem_write32le(st, sizy);
 
    return(1);
 }
 
-int MDFNSS_LoadSM(void *st_p, int, int)
+int MDFNSS_LoadSM(void *st_p, int a, int b)
 {
    uint8_t header[32];
    uint32_t stateversion;
