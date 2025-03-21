@@ -12,15 +12,13 @@
 //	additional informations.
 //---------------------------------------------------------------------------
 
+#include <string.h>
+
 #include "neopop.h"
 #include "dma.h"
 #include "mem.h"
 #include "interrupt.h"
 #include "../state.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 static uint32_t dmaS[4], dmaD[4];
 static uint16_t dmaC[4];
@@ -37,9 +35,9 @@ void reset_dma(void)
 void DMA_update(int channel)
 {
 	uint8_t mode = (dmaM[channel] & 0x1C) >> 2;
-	uint8_t size = (dmaM[channel] & 0x03);			//byte, word or long
+	uint8_t size = (dmaM[channel] & 0x03);			/* byte, word or long */
 
-	// Correct?
+	/* Correct? */
 	if (dmaC[channel] == 0)
 		return;
 
@@ -50,15 +48,15 @@ void DMA_update(int channel)
          {
             case 0:
                storeB(dmaD[channel], loadB(dmaS[channel]));
-               dmaD[channel] += 1; //Byte increment
+               dmaD[channel] += 1; /* Byte increment */
                break;
             case 1:
                storeW(dmaD[channel], loadW(dmaS[channel]));
-               dmaD[channel] += 2; //Word increment
+               dmaD[channel] += 2; /* Word increment */
                break;
             case 2:
                storeL(dmaD[channel], loadL(dmaS[channel]));
-               dmaD[channel] += 4; //Long increment
+               dmaD[channel] += 4; /* Long increment */
                break;
          }
          break;
@@ -99,7 +97,7 @@ void DMA_update(int channel)
          }
          break;
 
-      case 3:	// Source DEC mode, Memory to I/O transfer
+      case 3:	/* Source DEC mode, Memory to I/O transfer */
          switch(size)
          {
             case 0:
@@ -117,7 +115,7 @@ void DMA_update(int channel)
          }
          break;
 
-      case 4:	// Fixed Address Mode
+      case 4:	/* Fixed Address Mode */
          switch(size)
          {
             case 0:
@@ -132,13 +130,9 @@ void DMA_update(int channel)
          }
          break;
 
-      case 5: // Counter Mode
+      case 5: /* Counter Mode */
          dmaS[channel] ++;
          break;
-
-      default:
-         printf("Bad DMA mode %d\nPlease report this to the author.", dmaM[channel]);
-         return;
    }
 
 	/* Perform common counter decrement,
@@ -169,9 +163,6 @@ void dmaStoreB(uint8_t cr, uint8_t data)
       case 0x2E:
          dmaM[3] = data;
          break;
-      default: 
-         printf("dmaStoreB: Unknown register 0x%02X <- %02X\nPlease report this to the author.\n", cr, data);
-         break;
    }
 }
 
@@ -190,10 +181,6 @@ void dmaStoreW(uint8_t cr, uint16_t data)
          break;
       case 0x2C:
          dmaC[3] = data;
-         break;
-
-      default: 
-         printf("dmaStoreW: Unknown register 0x%02X <- %04X\nPlease report this to the author.\n", cr, data);
          break;
    }
 }
@@ -226,10 +213,6 @@ void dmaStoreL(uint8_t cr, uint32_t data)
       case 0x1C:
          dmaD[3] = data;
          break;
-
-      default: 
-         printf("dmaStoreL: Unknown register 0x%02X <- %08X\nPlease report this to the author.\n", cr, data);
-         break;
    }
 }
 
@@ -246,8 +229,6 @@ uint8_t dmaLoadB(uint8_t cr)
          return dmaM[2];
       case 0x2E:
          return dmaM[3];
-      default: 
-         printf("dmaLoadB: Unknown register 0x%02X\nPlease report this to the author.", cr);
    }
 
    return 0;
@@ -265,8 +246,6 @@ uint16_t dmaLoadW(uint8_t cr)
          return dmaC[2];
       case 0x2C:
          return dmaC[3];
-      default: 
-         printf("dmaLoadW: Unknown register 0x%02X\nPlease report this to the author.", cr);
    }
 
    return 0;
@@ -292,8 +271,6 @@ uint32_t dmaLoadL(uint8_t cr)
          return dmaD[2];
       case 0x1C:
          return dmaD[3];
-      default: 
-         printf("dmaLoadL: Unknown register 0x%02X\nPlease report this to the author.", cr);
    }
 
    return 0;
@@ -315,8 +292,3 @@ int MDFNNGPCDMA_StateAction(void *data, int load, int data_only)
 
    return 1; 
 }
-
-#ifdef __cplusplus
-}
-#endif
-

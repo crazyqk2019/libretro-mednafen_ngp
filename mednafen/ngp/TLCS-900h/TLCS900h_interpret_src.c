@@ -89,11 +89,10 @@ void srcPUSH(void)
 //===== RLD A,(mem)
 void srcRLD(void)
 {
-	uint8 al = REGA & 0xF, m, mh, ml;
-
-	m = loadB(mem);
-	mh = (m & 0xF0) >> 4;
-	ml = (m & 0x0F) << 4;
+	uint8 al = REGA & 0xF;
+	uint8 m  = loadB(mem);
+	uint8 mh = (m & 0xF0) >> 4;
+	uint8 ml = (m & 0x0F) << 4;
 	
 	REGA = (REGA & 0xF0) | mh;
 	storeB(mem, ml | al);
@@ -108,13 +107,12 @@ void srcRLD(void)
 }
 
 //===== RRD A,(mem)
-void srcRRD()
+void srcRRD(void)
 {
-	uint8 al = (REGA & 0xF) << 4, m, mh, ml;
-
-	m = loadB(mem);
-	mh = (m & 0xF0) >> 4;
-	ml = m & 0x0F;
+	uint8 al = (REGA & 0xF) << 4;
+	uint8 m  = loadB(mem);
+	uint8 mh = (m & 0xF0) >> 4;
+	uint8 ml = m & 0x0F;
 	
 	REGA = (REGA & 0xF0) | ml;
 	storeB(mem, al | mh);
@@ -129,7 +127,7 @@ void srcRRD()
 }
 
 //===== LDI
-void srcLDI()
+void srcLDI(void)
 {
    uint8 dst = 2/*XDE*/, src = 3/*XHL*/;
    if ((first & 0xF) == 5)
@@ -162,7 +160,7 @@ void srcLDI()
 }
 
 //===== LDIR
-void srcLDIR()
+void srcLDIR(void)
 {
    uint8 dst = 2/*XDE*/, src = 3/*XHL*/;
    if ((first & 0xF) == 5)
@@ -178,14 +176,12 @@ void srcLDIR()
       switch(size)
       {
          case 0:
-            if (debug_abort_memory == false)
-               storeB(regL(dst), loadB(regL(src)));
+            storeB(regL(dst), loadB(regL(src)));
             regL(dst) += 1;
             regL(src) += 1;
             break;
          case 1:
-            if (debug_abort_memory == false)
-               storeW(regL(dst), loadW(regL(src)));
+            storeW(regL(dst), loadW(regL(src)));
             regL(dst) += 2;
             regL(src) += 2;
             break;
@@ -203,7 +199,7 @@ void srcLDIR()
 }
 
 //===== LDD
-void srcLDD()
+void srcLDD(void)
 {
 	uint8 dst = 2/*XDE*/, src = 3/*XHL*/;
 	if ((first & 0xF) == 5) { dst = 4/*XIX*/; src = 5/*XIY*/; }
@@ -232,7 +228,7 @@ void srcLDD()
 }
 
 //===== LDDR
-void srcLDDR()
+void srcLDDR(void)
 {
 	uint8 dst = 2/*XDE*/, src = 3/*XHL*/;
 	if ((first & 0xF) == 5)	{ dst = 4/*XIX*/; src = 5/*XIY*/; }
@@ -244,15 +240,13 @@ void srcLDDR()
 		switch(size)
 		{
 		case 0:
-			if (debug_abort_memory == false)
-				storeB(regL(dst), loadB(regL(src)));
+			storeB(regL(dst), loadB(regL(src)));
 			regL(dst) -= 1;
 			regL(src) -= 1;
 			break;
 
 		case 1:
-			if (debug_abort_memory == false)
-				storeW(regL(dst), loadW(regL(src)));
+			storeW(regL(dst), loadW(regL(src)));
 			regL(dst) -= 2;
 			regL(src) -= 2;
 			break;
@@ -270,7 +264,7 @@ void srcLDDR()
 }
 
 //===== CPI
-void srcCPI()
+void srcCPI(void)
 {
 	uint8 R = first & 7;
 
@@ -290,7 +284,7 @@ void srcCPI()
 }
 
 //===== CPIR
-void srcCPIR()
+void srcCPIR(void)
 {
 	uint8 R = first & 7;
 
@@ -300,13 +294,14 @@ void srcCPIR()
 	{
 		switch(size)
 		{
-		case 0:	if (debug_abort_memory == false)
-					generic_SUB_B(REGA, loadB(regL(R)));
-				regL(R) ++; break;
-
-		case 1:	if (debug_abort_memory == false)
-					generic_SUB_W(REGWA, loadW(regL(R)));
-				regL(R) += 2; break;
+			case 0:	
+				generic_SUB_B(REGA, loadB(regL(R)));
+				regL(R) ++;
+				break;
+			case 1:	
+				generic_SUB_W(REGWA, loadW(regL(R)));
+				regL(R) += 2;
+				break;
 		}
 
 		REGBC --;
@@ -318,7 +313,7 @@ void srcCPIR()
 }
 
 //===== CPD
-void srcCPD()
+void srcCPD(void)
 {
 	uint8 R = first & 7;
 
@@ -338,7 +333,7 @@ void srcCPD()
 }
 
 //===== CPDR
-void srcCPDR()
+void srcCPDR(void)
 {
 	uint8 R = first & 7;
 
@@ -348,13 +343,15 @@ void srcCPDR()
 	{
 		switch(size)
 		{
-		case 0:	if (debug_abort_memory == false)
-					generic_SUB_B(REGA, loadB(regL(R)));
-				regL(R) -= 1; break;
+			case 0:	
+				generic_SUB_B(REGA, loadB(regL(R)));
+				regL(R) -= 1;
+				break;
 
-		case 1: if (debug_abort_memory == false)
-					generic_SUB_W(REGWA, loadW(regL(R)));
-				regL(R) -= 2; break;
+			case 1: 
+				generic_SUB_W(REGWA, loadW(regL(R)));
+				regL(R) -= 2;
+				break;
 		}
 
 		REGBC --;
@@ -366,7 +363,7 @@ void srcCPDR()
 }
 
 //===== LD (nn),(mem)
-void srcLD16m()
+void srcLD16m(void)
 {
 	switch(size)
 	{
@@ -378,7 +375,7 @@ void srcLD16m()
 }
 
 //===== LD R,(mem)
-void srcLD()
+void srcLD(void)
 {
 	switch(size)
 	{
@@ -389,7 +386,7 @@ void srcLD()
 }
 
 //===== EX (mem),R
-void srcEX()
+void srcEX(void)
 {
 	switch(size)
 	{
@@ -406,7 +403,7 @@ void srcEX()
 }
 
 //===== ADD (mem),#
-void srcADDi()
+void srcADDi(void)
 {
 	switch(size)
 	{
@@ -416,7 +413,7 @@ void srcADDi()
 }
 
 //===== ADC (mem),#
-void srcADCi()
+void srcADCi(void)
 {
 	switch(size)
 	{
@@ -426,7 +423,7 @@ void srcADCi()
 }
 
 //===== SUB (mem),#
-void srcSUBi()
+void srcSUBi(void)
 {
 	switch(size)
 	{
@@ -436,7 +433,7 @@ void srcSUBi()
 }
 
 //===== SBC (mem),#
-void srcSBCi()
+void srcSBCi(void)
 {
 	switch(size)
 	{
@@ -446,7 +443,7 @@ void srcSBCi()
 }
 
 //===== AND (mem),#
-void srcANDi()
+void srcANDi(void)
 {
 	switch(size)
 	{
@@ -473,7 +470,7 @@ void srcANDi()
 }
 
 //===== OR (mem),#
-void srcORi()
+void srcORi(void)
 {
 	switch(size)
 	{
@@ -500,7 +497,7 @@ void srcORi()
 }
 
 //===== XOR (mem),#
-void srcXORi()
+void srcXORi(void)
 {
 	switch(size)
 	{
@@ -527,7 +524,7 @@ void srcXORi()
 }
 
 //===== CP (mem),#
-void srcCPi()
+void srcCPi(void)
 {
 	switch(size)
 	{
@@ -539,14 +536,11 @@ void srcCPi()
 }
 
 //===== MUL RR,(mem)
-void srcMUL()
+void srcMUL(void)
 {
 	uint8 target = get_RR_Target();
 	if (target == 0x80)
-	{
-		instruction_error("src: MUL bad \'RR\' dst code");
 		return;
-	}
 
 	switch(size)
 	{
@@ -558,14 +552,11 @@ void srcMUL()
 }
 
 //===== MULS RR,(mem)
-void srcMULS()
+void srcMULS(void)
 {
 	uint8 target = get_RR_Target();
 	if (target == 0x80)
-	{
-		instruction_error("src: MUL bad \'RR\' dst code");
 		return;
-	}
 
 	switch(size)
 	{
@@ -577,14 +568,11 @@ void srcMULS()
 }
 
 //===== DIV RR,(mem)
-void srcDIV()
+void srcDIV(void)
 {
 	uint8 target = get_RR_Target();
 	if (target == 0x80)
-	{
-		instruction_error("src: DIV bad \'RR\' dst code");
 		return;
-	}
 
 	switch(size)
 	{
@@ -599,14 +587,11 @@ void srcDIV()
 }
 
 //===== DIVS RR,(mem)
-void srcDIVS()
+void srcDIVS(void)
 {
 	uint8 target = get_RR_Target();
 	if (target == 0x80)
-	{
-		instruction_error("src: DIVS bad \'RR\' dst code");
 		return;
-	}
 
 	switch(size)
 	{
@@ -621,7 +606,7 @@ void srcDIVS()
 }
 
 //===== INC #3,(mem)
-void srcINC()
+void srcINC(void)
 {
 	uint8 val = R;
 	if (val == 0)
@@ -664,7 +649,7 @@ void srcINC()
 }
 
 //===== DEC #3,(mem)
-void srcDEC()
+void srcDEC(void)
 {
 	uint8 val = R;
 	if (val == 0)
@@ -707,7 +692,7 @@ void srcDEC()
 }
 
 //===== RLC (mem)
-void srcRLC()
+void srcRLC(void)
 {
 	switch(size)
 	{
@@ -739,7 +724,7 @@ void srcRLC()
 }
 
 //===== RRC (mem)
-void srcRRC()
+void srcRRC(void)
 {
 	switch(size)
 	{
@@ -771,7 +756,7 @@ void srcRRC()
 }
 
 //===== RL (mem)
-void srcRL()
+void srcRL(void)
 {
 	bool tempC;
 
@@ -804,7 +789,7 @@ void srcRL()
 }
 
 //===== RR (mem)
-void srcRR()
+void srcRR(void)
 {
 	bool tempC;
 
@@ -837,7 +822,7 @@ void srcRR()
 }
 
 //===== SLA (mem)
-void srcSLA()
+void srcSLA(void)
 {
 	switch(size)
 	{
@@ -867,7 +852,7 @@ void srcSLA()
 }
 
 //===== SRA (mem)
-void srcSRA()
+void srcSRA(void)
 {
 	switch(size)
 	{
@@ -897,7 +882,7 @@ void srcSRA()
 }
 
 //===== SLL (mem)
-void srcSLL()
+void srcSLL(void)
 {
 	switch(size)
 	{
@@ -927,7 +912,7 @@ void srcSLL()
 }
 
 //===== SRL (mem)
-void srcSRL()
+void srcSRL(void)
 {
 	switch(size)
 	{
@@ -957,7 +942,7 @@ void srcSRL()
 }
 
 //===== ADD R,(mem)
-void srcADDRm()
+void srcADDRm(void)
 {
 	switch(size)
 	{
@@ -968,7 +953,7 @@ void srcADDRm()
 }
 
 //===== ADD (mem),R
-void srcADDmR()
+void srcADDmR(void)
 {
 	switch(size)
 	{
@@ -979,7 +964,7 @@ void srcADDmR()
 }
 
 //===== ADC R,(mem)
-void srcADCRm()
+void srcADCRm(void)
 {
 	switch(size)
 	{
@@ -990,7 +975,7 @@ void srcADCRm()
 }
 
 //===== ADC (mem),R
-void srcADCmR()
+void srcADCmR(void)
 {
 	switch(size)
 	{
@@ -1001,7 +986,7 @@ void srcADCmR()
 }
 
 //===== SUB R,(mem)
-void srcSUBRm()
+void srcSUBRm(void)
 {
 	switch(size)
 	{
@@ -1012,7 +997,7 @@ void srcSUBRm()
 }
 
 //===== SUB (mem),R
-void srcSUBmR()
+void srcSUBmR(void)
 {
 	switch(size)
 	{
@@ -1023,7 +1008,7 @@ void srcSUBmR()
 }
 
 //===== SBC R,(mem)
-void srcSBCRm()
+void srcSBCRm(void)
 {
 	switch(size)
 	{
@@ -1034,7 +1019,7 @@ void srcSBCRm()
 }
 
 //===== SBC (mem),R
-void srcSBCmR()
+void srcSBCmR(void)
 {
 	switch(size)
 	{
@@ -1045,7 +1030,7 @@ void srcSBCmR()
 }
 
 //===== AND R,(mem)
-void srcANDRm()
+void srcANDRm(void)
 {
 	switch(size)
 	{
@@ -1079,7 +1064,7 @@ void srcANDRm()
 }
 
 //===== AND (mem),R
-void srcANDmR()
+void srcANDmR(void)
 {
 	switch(size)
 	{
@@ -1113,7 +1098,7 @@ void srcANDmR()
 }
 
 //===== XOR R,(mem)
-void srcXORRm()
+void srcXORRm(void)
 {
 	switch(size)
 	{
@@ -1147,7 +1132,7 @@ void srcXORRm()
 }
 
 //===== XOR (mem),R
-void srcXORmR()
+void srcXORmR(void)
 {
 	switch(size)
 	{
@@ -1181,7 +1166,7 @@ void srcXORmR()
 }
 
 //===== OR R,(mem)
-void srcORRm()
+void srcORRm(void)
 {
 	switch(size)
 	{
@@ -1215,7 +1200,7 @@ void srcORRm()
 }
 
 //===== OR (mem),R
-void srcORmR()
+void srcORmR(void)
 {
 	switch(size)
 	{

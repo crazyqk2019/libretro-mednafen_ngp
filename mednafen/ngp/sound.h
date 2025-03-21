@@ -20,16 +20,21 @@
 /* Speed of DAC playback (in Hz) */
 #define DAC_FREQUENCY		8000
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void Write_SoundChipLeft(uint8_t data);
 void Write_SoundChipRight(uint8_t data);
-
 void dac_write_left(uint8_t);
 void dac_write_right(uint8_t);
-
-int32_t MDFNNGPCSOUND_Flush(int16_t *SoundBuf, const int32_t MaxSoundFrames);
-void MDFNNGPCSOUND_Init(void);
-bool MDFNNGPC_SetSoundRate(uint32_t rate);
-int MDFNNGPCSOUND_StateAction(void *data, int load, int data_only);
 void MDFNNGPCSOUND_SetEnable(bool set);
+void MDFNNGPCSOUND_Init(void);
+int MDFNNGPCSOUND_StateAction(void *data, int load, int data_only);
+void MDFNNGPC_SetSoundRate(void);
+int32_t MDFNNGPCSOUND_Flush(int16_t *SoundBuf, const int32_t MaxSoundFrames);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

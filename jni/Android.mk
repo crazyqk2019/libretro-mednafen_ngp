@@ -6,7 +6,6 @@ DEBUG                    := 0
 FRONTEND_SUPPORTS_RGB565 := 1
 NEED_BPP                 := 16
 NEED_BLIP                := 1
-NEED_STEREO_SOUND        := 1
 IS_X86                   := 0
 LOAD_FROM_MEMORY         := 1
 FLAGS                    :=
@@ -17,7 +16,7 @@ endif
 
 include $(CORE_DIR)/Makefile.common
 
-COREFLAGS := -funroll-loops $(INCFLAGS) -DMEDNAFEN_VERSION=\"0.9.26\" -DMEDNAFEN_VERSION_NUMERIC=926 -DPSS_STYLE=1 -D__LIBRETRO__ -D_LOW_ACCURACY_ -DINLINE="inline" $(FLAGS)
+COREFLAGS := -funroll-loops $(INCFLAGS) -DMEDNAFEN_VERSION_NUMERIC=926 -D__LIBRETRO__ -DINLINE="inline" $(FLAGS)
 COREFLAGS += -DWANT_NGP_EMU
 
 GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"

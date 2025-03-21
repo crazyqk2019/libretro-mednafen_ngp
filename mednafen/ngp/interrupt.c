@@ -1,20 +1,21 @@
-//---------------------------------------------------------------------------
-// NEOPOP : Emulator as in Dreamland
-//
-// Copyright (c) 2001-2002 by neopop_uk
-//---------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
-//	This program is free software; you can redistribute it and/or modify
-//	it under the terms of the GNU General Public License as published by
-//	the Free Software Foundation; either version 2 of the License, or
-//	(at your option) any later version. See also the license.txt file for
-//	additional informations.
-//---------------------------------------------------------------------------
+/*---------------------------------------------------------------------------
+ * NEOPOP : Emulator as in Dreamland
+ *
+ * Copyright (c) 2001-2002 by neopop_uk
+ *---------------------------------------------------------------------------
+ *
+ *---------------------------------------------------------------------------
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 2 of the License, or
+ *	(at your option) any later version. See also the license.txt file for
+ *	additional informations.
+ *---------------------------------------------------------------------------
+ */
 
 #include <string.h>
 
-#include "../mednafen.h"
+#include "../state.h"
 
 #include "TLCS-900h/TLCS900h_registers.h"
 #include "TLCS-900h/TLCS900h_interpret.h"
@@ -24,19 +25,14 @@
 #include "Z80_interface.h"
 #include "dma.h"
 #include "system.h"
-#include "state_helpers.h"
 
 #ifndef NDEBUG
 #include <assert.h>
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 uint32_t timer_hint;
 static uint32_t timer_clock[4];
-static uint8_t timer[4];	//Up-counters
+static uint8_t timer[4];	/* Up-counters */
 static uint8_t timer_threshold[4];
 
 static uint8_t TRUN;
@@ -46,29 +42,29 @@ static uint8_t TFFCR;
 static uint8_t HDMAStartVector[4];
 
 static int32_t ipending[24];
-static int32_t IntPrio[0xB]; // 0070-007a
+static int32_t IntPrio[0xB]; /* 0070-007a */
 static bool h_int, timer0, timer2;
 
-// The way interrupt processing is set up is still written towards BIOS HLE emulation, which assumes
-// that the interrupt handler will immediately call DI, clear the interrupt latch(so the interrupt won't happen again when interrupts are re-enabled),
-// and then call the game's interrupt handler.
+/* The way interrupt processing is set up is still written towards BIOS HLE emulation, which assumes
+ * that the interrupt handler will immediately call DI, clear the interrupt latch(so the interrupt won't happen again when interrupts are re-enabled),
+ * and then call the game's interrupt handler.
 
-// We automatically clear the interrupt latch when the interrupt is accepted, and the interrupt latch is not checked every instruction,
-// but only when: an EI/DI, POP SR, or RETI instruction occurs; after a write to an interrupt priority register occurs; and when
-// a device sets the virual interrupt latch register, signaling it wants an interrupt.
+ * We automatically clear the interrupt latch when the interrupt is accepted, and the interrupt latch is not checked every instruction,
+ * but only when: an EI/DI, POP SR, or RETI instruction occurs; after a write to an interrupt priority register occurs; and when
+ * a device sets the virual interrupt latch register, signaling it wants an interrupt.
 
-// FIXME in the future if we ever add real bios support?
+ * FIXME in the future if we ever add real bios support?
+ */
 
 void interrupt(uint8_t index, uint8_t level)
 {
    push32(pc);
    push16(sr);
 
-   //Up the IFF
-   if(level >= 0)
-      setStatusIFF((level < 7) ? (level + 1) : 7);
+   /* Up the IFF */
+   setStatusIFF((level < 7) ? (level + 1) : 7);
 
-   //Access the interrupt vector table to find the jump destination
+   /* Access the interrupt vector table to find the jump destination */
    pc = loadL(0x6FB8 + index * 4);
 }
 
@@ -91,7 +87,7 @@ void int_check_pending(void)
     * pending flag by writing with IxxC set to "0", but
     * we'll actually need to implement a BIOS to do that! */
 
-   prio = IntPrio[0x1] & 0x07;     // INT4
+   prio = IntPrio[0x1] & 0x07;     /* INT4 */
    if(ipending[5] && curIFF <= prio && prio && prio != 7)
    {
       ipending[5] = 0;
@@ -99,7 +95,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = (IntPrio[0x1] & 0x70) >> 4;	// INT5 (Z80)
+   prio = (IntPrio[0x1] & 0x70) >> 4;	/* INT5 (Z80) */
    if(ipending[6] && curIFF <= prio && prio && prio != 7)
    {
       ipending[6] = 0;
@@ -107,7 +103,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = IntPrio[0x3] & 0x07;	// INTT0
+   prio = IntPrio[0x3] & 0x07;	/* INTT0 */
    if(ipending[7] && curIFF <= prio && prio && prio != 7)
    {
       ipending[7] = 0;
@@ -115,7 +111,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = (IntPrio[0x3] & 0x70) >> 4;	// INTT1
+   prio = (IntPrio[0x3] & 0x70) >> 4;	/* INTT1 */
    if(ipending[8] && curIFF <= prio && prio && prio != 7)
    {
       ipending[8] = 0;
@@ -123,7 +119,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = (IntPrio[0x4] & 0x07);	// INTT2
+   prio = (IntPrio[0x4] & 0x07);	/* INTT2 */
    if(ipending[9] && curIFF <= prio && prio && prio != 7)
    {
       ipending[9] = 0;
@@ -131,7 +127,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = ((IntPrio[0x4] & 0x70) >> 4); // INTT3
+   prio = ((IntPrio[0x4] & 0x70) >> 4); /* INTT3 */
    if(ipending[10] && curIFF <= prio && prio && prio != 7)
    {
       ipending[10] = 0;
@@ -139,7 +135,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = (IntPrio[0x7] & 0x07); // INTRX0
+   prio = (IntPrio[0x7] & 0x07); /* INTRX0 */
    if(ipending[11] && curIFF <= prio && prio && prio != 7)
    {
       ipending[11] = 0;
@@ -147,7 +143,7 @@ void int_check_pending(void)
       return;
    }
 
-   prio = ((IntPrio[0x7] & 0x70) >> 4); // INTTX0
+   prio = ((IntPrio[0x7] & 0x70) >> 4); /* INTTX0 */
    if(ipending[12] && curIFF <= prio && prio && prio != 7)
    {
       ipending[12] = 0;
@@ -262,8 +258,7 @@ void TestIntHDMA(int bios_num, int vec_num)
 }
 
 
-extern "C" int32_t ngpc_soundTS;
-extern "C" bool NGPFrameSkip;
+extern int32_t ngpc_soundTS;
 
 bool updateTimers(void *data, int cputicks)
 {
@@ -280,7 +275,7 @@ bool updateTimers(void *data, int cputicks)
       uint8_t _data;
 
       h_int = ngpgfx_hint(NGPGfx);	
-      ret   = ngpgfx_draw(NGPGfx, data, NGPFrameSkip);
+      ret   = ngpgfx_draw(NGPGfx, data, false);
 
       timer_hint -= TIMER_HINT_RATE;	/* Start of next scanline */
 
@@ -311,7 +306,7 @@ bool updateTimers(void *data, int cputicks)
                timer[0]++;
 
                timer_clock[0] = 0;
-               h_int = false;	// Stop h_int remaining active
+               h_int = false;	/* Stop h_int remaining active */
             }
             break;
 
@@ -355,7 +350,7 @@ bool updateTimers(void *data, int cputicks)
       switch((T01MOD & 0x0C) >> 2)
       {
          case 0:
-            if (timer0)	//Timer 0 chain mode.
+            if (timer0)	/* Timer 0 chain mode. */
             {
                timer[1] += timer0;
                timer_clock[1] = 0;
@@ -384,7 +379,7 @@ bool updateTimers(void *data, int cputicks)
             break;
       }
 
-      //Threshold check
+      /* Threshold check */
       if (timer_threshold[1] && timer[1] >= timer_threshold[1])
       {
          timer[1] = 0;
@@ -408,7 +403,7 @@ bool updateTimers(void *data, int cputicks)
          case 0:
             break;
          case 1:
-            while (timer_clock[2] >= TIMER_T1_RATE / 2) // Kludge :(
+            while (timer_clock[2] >= TIMER_T1_RATE / 2) /* Kludge :( */
             {
                timer[2]++;
                timer_clock[2] -= TIMER_T1_RATE / 2;
@@ -431,7 +426,7 @@ bool updateTimers(void *data, int cputicks)
             break;
       }
 
-      //Threshold check
+      /* Threshold check */
       if (timer_threshold[2] && timer[2] >= timer_threshold[2])
       {
          timer[2] = 0;
@@ -448,7 +443,7 @@ bool updateTimers(void *data, int cputicks)
       switch((T23MOD & 0x0C) >> 2)
       {
          case 0:
-            if(timer2)	//Timer 2 chain mode.
+            if(timer2)	/* Timer 2 chain mode. */
             {
                timer[3] += timer2;
                timer_clock[3] = 0;
@@ -478,7 +473,7 @@ bool updateTimers(void *data, int cputicks)
             break;
       }
 
-      //Threshold check
+      /* Threshold check */
       if (timer_threshold[3] && timer[3] >= timer_threshold[3])
       {
          timer[3] = 0;
@@ -564,18 +559,12 @@ uint8_t timer_read8(uint32_t address)
 {
    switch(address)
    {
-      //default: printf("Baaaad: %08x\n", address); break;
-      // Cool boarders is stupid and tries to read from a write-only register >_<
-      // Returning 4 makes the game run ok, so 4 it is!
       case 0x20:
          return TRUN;
       case 0x29:
          return TRDC;
-      default:
-         break;
    }
 
-   //printf("UNK B R: %08x\n", address);
    return 0x4;
 }
 
@@ -583,28 +572,25 @@ int int_timer_StateAction(void *data, int load, int data_only)
 {
    SFORMAT StateRegs[] =
    {
-      SFVAR(timer_hint),
-      SFARRAY32(timer_clock, 4),
-      SFARRAY(timer, 4),
-      SFARRAY(timer_threshold, 4),
-      SFVAR(TRUN),
-      SFVAR(T01MOD), SFVAR(T23MOD),
-      SFVAR(TRDC),
-      SFVAR(TFFCR),
-      SFARRAY(HDMAStartVector, 4),
-      SFARRAY32(ipending, 24),
-      SFARRAY32(IntPrio, 0xB),
-      SFVAR(h_int),
-      SFVAR(timer0),
-      SFVAR(timer2),
-      SFEND
+      { &(timer_hint), (uint32_t)sizeof(timer_hint), MDFNSTATE_RLSB, "timer_hint" },
+      { (timer_clock), (uint32_t)((4) * sizeof(uint32_t)), MDFNSTATE_RLSB32, "timer_clock" },
+      { (timer), (uint32_t)(4), 0, "timer" },
+      { (timer_threshold), (uint32_t)(4), 0, "timer_threshold" },
+      { &(TRUN), (uint32_t)sizeof(TRUN), MDFNSTATE_RLSB, "TRUN" },
+      { &(T01MOD), (uint32_t)sizeof(T01MOD), MDFNSTATE_RLSB, "T01MOD" },
+      { &(T23MOD), (uint32_t)sizeof(T23MOD), MDFNSTATE_RLSB, "T23MOD" },
+      { &(TRDC), (uint32_t)sizeof(TRDC), MDFNSTATE_RLSB, "TRDC" },
+      { &(TFFCR), (uint32_t)sizeof(TFFCR), MDFNSTATE_RLSB, "TFFCR" },
+      { (HDMAStartVector), (uint32_t)(4), 0, "HDMAStartVector" },
+      { (ipending), (uint32_t)((24) * sizeof(uint32_t)), MDFNSTATE_RLSB32, "ipending" },
+      { (IntPrio), (uint32_t)((0xB) * sizeof(uint32_t)), MDFNSTATE_RLSB32, "IntPrio" },
+      { &(h_int), 1, MDFNSTATE_RLSB | MDFNSTATE_BOOL, "h_int" },
+      { &(timer0), 1, MDFNSTATE_RLSB | MDFNSTATE_BOOL, "timer0" },
+      { &(timer2), 1, MDFNSTATE_RLSB | MDFNSTATE_BOOL, "timer2" },
+      { 0, 0, 0, 0 }
    };
    if(!MDFNSS_StateAction(data, load, data_only, StateRegs, "INTT", false))
       return 0;
 
    return 1;
 }
-
-#ifdef __cplusplus
-}
-#endif

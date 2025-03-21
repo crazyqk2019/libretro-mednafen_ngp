@@ -1,16 +1,21 @@
-//---------------------------------------------------------------------------
-// NEOPOP : Emulator as in Dreamland
-//
-// Copyright (c) 2001-2002 by neopop_uk
-//---------------------------------------------------------------------------
+/*---------------------------------------------------------------------------
+ * NEOPOP : Emulator as in Dreamland
+ *
+ * Copyright (c) 2001-2002 by neopop_uk
+ *---------------------------------------------------------------------------
 
-//---------------------------------------------------------------------------
-//	This program is free software; you can redistribute it and/or modify
-//	it under the terms of the GNU General Public License as published by
-//	the Free Software Foundation; either version 2 of the License, or
-//	(at your option) any later version. See also the license.txt file for
-//	additional informations.
-//---------------------------------------------------------------------------
+ *---------------------------------------------------------------------------
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 2 of the License, or
+ *	(at your option) any later version. See also the license.txt file for
+ *	additional informations.
+ *---------------------------------------------------------------------------
+ */
+
+#include <string.h>
+
+#include <boolean.h>
 
 #include "neopop.h"
 #include "bios.h"
@@ -19,13 +24,9 @@
 #include "mem.h"
 #include "flash.h"
 #include "interrupt.h"
+#include "rom.h"
+#include "system.h"
 #include "../state.h"
-
-#include <boolean.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* Interrupt prio registers at 0x0070-0x007a don't have priority readable. */
 /* This should probably be stored in BIOS work RAM somewhere instead of a 
@@ -66,23 +67,21 @@ void iBIOSHLE(void)
    {	
       case VECT_SHUTDOWN:
          {
-            //Cheap bit of code to stop the message appearing repeatedly.
+            /* Cheap bit of code to stop the message appearing repeatedly. */
             uint32 a = pop32();
-            if (a != 0xBAADC0DE)
-               printf("IDS_POWER");
-            push32(0xBAADC0DE); //Sure is!
+            push32(0xBAADC0DE); /* Sure is! */
          }
 
-         return;	//Don't pop a return address, stay here
+         return;	/* Don't pop a return address, stay here */
       case VECT_CLOCKGEARSET:
          break;
 
-         //VECT_RTCGET
+         /* VECT_RTCGET */
       case 0xFF1440:
 
          if (rCodeL(0x3C) < 0xC000)
          {
-            //Copy data from hardware area
+            /* Copy data from hardware area */
             storeB(rCodeL(0x3C) + 0, loadB(0x91));
             storeB(rCodeL(0x3C) + 1, loadB(0x92));
             storeB(rCodeL(0x3C) + 2, loadB(0x93));
@@ -94,7 +93,7 @@ void iBIOSHLE(void)
 
          break; 
 
-         //VECT_INTLVSET
+         /* VECT_INTLVSET */
       case 0xFF1222:
          {
 
@@ -155,7 +154,6 @@ void iBIOSHLE(void)
                   storeB(0x7a, CacheIntPrio[0xa]);
                   break;
                default: 
-                  puts("DOH");
                   break;
             }
          }
@@ -201,18 +199,12 @@ void iBIOSHLE(void)
             if (rCodeB(0x30) == 1)
                bank = 0x800000;
 
-            memory_flash_error = false;
             memory_unlock_flash_write = true;
             //Copy as 32 bit values for speed
             for (i = 0; i < rCodeW(0x34) * 64ul; i++)
                storeL(rCodeL(0x38) + bank + (i * 4), loadL(rCodeL(0x3C) + (i * 4)));
             memory_unlock_flash_write = false;
 
-            if (memory_flash_error)
-            {
-               rCodeB(0x30) = 0xFF;	//RA3 = SYS_FAILURE
-            }
-            else
             {
                uint32 address = rCodeL(0x38);
                if (rCodeB(0x30) == 1)
@@ -241,50 +233,46 @@ void iBIOSHLE(void)
 		    const uint8 bank = rCodeB(0x30);
 		    const uint8 flash_block = rCodeB(0x35);
 
-		    //printf("flash erase: %d 0x%02x\n", bank, flash_block);
-
 		    if((ngpc_rom.length & ~0x1FFF) == 0x200000 && bank == 0 && flash_block == 31)
 		    {
 		       const uint32 addr = 0x3F0000;
 		       const uint32 size = 0x008000;
+             uint32_t i;
 
 		       flash_optimise_blocks();
 		       flash_write(addr, size);
 		       flash_optimise_blocks();
 
-		       memory_flash_error = false;
 		       memory_unlock_flash_write = true;
-		       for(uint32 i = 0; i < size; i += 4)
-		       {
+
+		       for(i = 0; i < size; i += 4)
 		        storeL(addr + i, 0xFFFFFFFF);
-		       }
 		       memory_unlock_flash_write = false;
 		    }
 
-		    rCodeB(0x30) = 0;	//RA3 = SYS_SUCCESS
-		    //rCodeB(0x30) = 0xFF;	//RA3 = SYS_FAILURE
+		    rCodeB(0x30) = 0;	   /* RA3 = SYS_SUCCESS */
          }
          break;
 
-         //VECT_ALARMSET
+         /* VECT_ALARMSET */
       case 0xFF149B:
-         //TODO
-         rCodeB(0x30) = 0;	//RA3 = SYS_SUCCESS
+         /* TODO */
+         rCodeB(0x30) = 0;	/* RA3 = SYS_SUCCESS */
          break;
 
-         //VECT_ALARMDOWNSET
+         /* VECT_ALARMDOWNSET */
       case 0xFF1487:
-         //TODO
-         rCodeB(0x30) = 0;	//RA3 = SYS_SUCCESS
+         /* TODO */
+         rCodeB(0x30) = 0;	/* RA3 = SYS_SUCCESS */
          break;
 
-         //VECT_FLASHPROTECT
+         /* VECT_FLASHPROTECT */
       case 0xFF70CA:
-         //TODO
-         rCodeB(0x30) = 0;	//RA3 = SYS_SUCCESS
+         /* TODO */
+         rCodeB(0x30) = 0;	/* RA3 = SYS_SUCCESS */
          break;
 
-         //VECT_GEMODESET
+         /* VECT_GEMODESET */
       case 0xFF17C4:
          //TODO
          break;
@@ -397,20 +385,18 @@ void iBIOSHLE(void)
          {
             uint8 data;
 
-            if (system_comms_read(&data))
-            {
-               //Read data into (XHL3++)
-               storeB(rCodeL(0x3C), data);
-               rCodeL(0x3C)++; //Next data
-               rCodeB(0x35)--;	//RB3 = Count Left
-
-               //Comms. Read interrupt
-               storeB(0x50, data);
-               TestIntHDMA(12, 0x19);
-               return;
-            }
-            else
+            if (!system_comms_read(&data))
                break;
+
+            /* Read data into (XHL3++) */
+            storeB(rCodeL(0x3C), data);
+            rCodeL(0x3C)++;   /* Next data */
+            rCodeB(0x35)--;	/* RB3 = Count Left */
+
+            /* Comms. Read interrupt */
+            storeB(0x50, data);
+            TestIntHDMA(12, 0x19);
+            return;
          }
 
       }
@@ -418,13 +404,9 @@ void iBIOSHLE(void)
       return;
    }
 
-   //RET
+   /* RET */
    pc = pop32();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 int BIOSHLE_StateAction(void *data, int load, int data_only)
 {

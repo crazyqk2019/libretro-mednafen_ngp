@@ -12,6 +12,10 @@
 //	additional informations.
 //---------------------------------------------------------------------------
 
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
 #include "neopop.h"
 #include "mem.h"
 #include "gfx.h"
@@ -20,7 +24,6 @@
 #include "TLCS-900h/TLCS900h_registers.h"
 #include "../state.h"
 #include "../video.h"
-#include "../state_helpers.h"
 #ifdef MSB_FIRST
 #include "../masmem.h"
 #endif
@@ -220,8 +223,6 @@ static void draw_scanline_colour(ngpgfx_t *gfx, uint16_t *cfb_scanline,
 		if (gfx->negative)
          data16 = ~data16;
 
-      data16 = data16;
-		
       x    = gfx->winx;
       scan = &cfb_scanline[x];
 
@@ -307,6 +308,7 @@ static void draw_scanline_colour(ngpgfx_t *gfx, uint16_t *cfb_scanline,
 static void MonoPlot(ngpgfx_t *gfx, uint16_t *cfb_scanline, uint8_t *zbuffer,
       uint8 x, uint8* palette_ptr, uint16 pal_hi, uint8 index, uint8 depth)
 {
+   uint16 r, g, b;
 	uint8_t data8, *zbuf;
    uint16_t *scan, data16;
 
@@ -324,9 +326,9 @@ static void MonoPlot(ngpgfx_t *gfx, uint16_t *cfb_scanline, uint8_t *zbuffer,
 	/*Get the colour of the pixel */
    data8 = palette_ptr[(pal_hi ? 3 : 0) + index - 1];
 
-	uint16 r = (data8 & 7) << 1;
-	uint16 g = (data8 & 7) << 5;
-	uint16 b = (data8 & 7) << 9;
+	r     = (data8 & 7) << 1;
+	g     = (data8 & 7) << 5;
+	b     = (data8 & 7) << 9;
 
    scan = &cfb_scanline[x];
    data16 = ~(r | g | b);
@@ -658,8 +660,8 @@ void ngpgfx_set_pixel_format(ngpgfx_t *gfx, int depth)
       switch(depth)
       {
          case 15: gfx->ColorMap[i] = MAKECOLOR_15(r, g, b, 0); break;
-         case 16: gfx->ColorMap[i] = MAKECOLOR_16(r, g, b, 0); break;
-         default: gfx->ColorMap[i] = MAKECOLOR_24(r, g, b, 0); break;
+         case 16:
+	 default: gfx->ColorMap[i] = MAKECOLOR_16(r, g, b, 0); break;
       }
    }
 }
@@ -728,50 +730,50 @@ int ngpgfx_StateAction(ngpgfx_t *gfx, void *data, int load, int data_only)
    SFORMAT StateRegs[] =
    {
       { &(gfx->raster_line), sizeof(gfx->raster_line), 0x80000000, "raster_line" },
-      { &(gfx->S1SO_H), (uint32_t)(SF_IS_BOOL(&(gfx->S1SO_H)) ? 1 : sizeof(gfx->S1SO_H)), 0x80000000 | (SF_IS_BOOL(&(gfx->S1SO_H)) ? 0x08000000 : 0), "S1SO_H" },
-      { &(gfx->S1SO_V), (uint32_t)(SF_IS_BOOL(&(gfx->S1SO_V)) ? 1 : sizeof(gfx->S1SO_V)), 0x80000000 | (SF_IS_BOOL(&(gfx->S1SO_V)) ? 0x08000000 : 0), "S1SO_V" },
-      { &(gfx->S2SO_H), (uint32_t)(SF_IS_BOOL(&(gfx->S2SO_H)) ? 1 : sizeof(gfx->S2SO_H)), 0x80000000 | (SF_IS_BOOL(&(gfx->S2SO_H)) ? 0x08000000 : 0), "S2SO_H" },
-      { &(gfx->S2SO_V), (uint32_t)(SF_IS_BOOL(&(gfx->S2SO_V)) ? 1 : sizeof(gfx->S2SO_V)), 0x80000000 | (SF_IS_BOOL(&(gfx->S2SO_V)) ? 0x08000000 : 0), "S2SO_V" },
-      { &(gfx->WBA_H), (uint32_t)(SF_IS_BOOL(&(gfx->WBA_H)) ? 1 : sizeof(gfx->WBA_H)), 0x80000000 | (SF_IS_BOOL(&(gfx->WBA_H)) ? 0x08000000 : 0), "WBA_H" },
-      { &(gfx->WBA_V), (uint32_t)(SF_IS_BOOL(&(gfx->WBA_V)) ? 1 : sizeof(gfx->WBA_V)), 0x80000000 | (SF_IS_BOOL(&(gfx->WBA_V)) ? 0x08000000 : 0), "WBA_V" },
-      { &(gfx->WSI_H), (uint32_t)(SF_IS_BOOL(&(gfx->WSI_H)) ? 1 : sizeof(gfx->WSI_H)), 0x80000000 | (SF_IS_BOOL(&(gfx->WSI_H)) ? 0x08000000 : 0), "WSI_H" },
-      { &(gfx->WSI_V), (uint32_t)(SF_IS_BOOL(&(gfx->WSI_V)) ? 1 : sizeof(gfx->WSI_V)), 0x80000000 | (SF_IS_BOOL(&(gfx->WSI_V)) ? 0x08000000 : 0), "WSI_V" },
-      { &(gfx->C_OVR), (uint32_t)(SF_IS_BOOL(&(gfx->C_OVR)) ? 1 : sizeof(gfx->C_OVR)), 0x80000000 | (SF_IS_BOOL(&(gfx->C_OVR)) ? 0x08000000 : 0), "C_OVR" },
-      { &(gfx->BLNK), (uint32_t)(SF_IS_BOOL(&(gfx->BLNK)) ? 1 : sizeof(gfx->BLNK)), 0x80000000 | (SF_IS_BOOL(&(gfx->BLNK)) ? 0x08000000 : 0), "BLNK" },
-      { &(gfx->PO_H), (uint32_t)(SF_IS_BOOL(&(gfx->PO_H)) ? 1 : sizeof(gfx->PO_H)), 0x80000000 | (SF_IS_BOOL(&(gfx->PO_H)) ? 0x08000000 : 0), "PO_H" },
-      { &(gfx->PO_V), (uint32_t)(SF_IS_BOOL(&(gfx->PO_V)) ? 1 : sizeof(gfx->PO_V)), 0x80000000 | (SF_IS_BOOL(&(gfx->PO_V)) ? 0x08000000 : 0), "PO_V" },
-      { &(gfx->P_F), (uint32_t)(SF_IS_BOOL(&(gfx->P_F)) ? 1 : sizeof(gfx->P_F)), 0x80000000 | (SF_IS_BOOL(&(gfx->P_F)) ? 0x08000000 : 0), "P_F" },
-      { &(gfx->BG_COL), (uint32_t)(SF_IS_BOOL(&(gfx->BG_COL)) ? 1 : sizeof(gfx->BG_COL)), 0x80000000 | (SF_IS_BOOL(&(gfx->BG_COL)) ? 0x08000000 : 0), "BG_COL" },
-      { &(gfx->CONTROL_2D), (uint32_t)(SF_IS_BOOL(&(gfx->CONTROL_2D)) ? 1 : sizeof(gfx->CONTROL_2D)), 0x80000000 | (SF_IS_BOOL(&(gfx->CONTROL_2D)) ? 0x08000000 : 0), "CONTROL_2D" },
-      { &(gfx->CONTROL_INT), (uint32_t)(SF_IS_BOOL(&(gfx->CONTROL_INT)) ? 1 : sizeof(gfx->CONTROL_INT)), 0x80000000 | (SF_IS_BOOL(&(gfx->CONTROL_INT)) ? 0x08000000 : 0), "CONTROL_INT" },
-      { &(gfx->SCREEN_PERIOD), (uint32_t)(SF_IS_BOOL(&(gfx->SCREEN_PERIOD)) ? 1 : sizeof(gfx->SCREEN_PERIOD)), 0x80000000 | (SF_IS_BOOL(&(gfx->SCREEN_PERIOD)) ? 0x08000000 : 0), "SCREEN_PERIOD" },
-      { &(gfx->K2GE_MODE), (uint32_t)(SF_IS_BOOL(&(gfx->K2GE_MODE)) ? 1 : sizeof(gfx->K2GE_MODE)), 0x80000000 | (SF_IS_BOOL(&(gfx->K2GE_MODE)) ? 0x08000000 : 0), "K2GE_MODE" },
+      { &(gfx->S1SO_H), (uint32_t)(sizeof(gfx->S1SO_H)), 0x80000000, "S1SO_H" },
+      { &(gfx->S1SO_V), (uint32_t)(sizeof(gfx->S1SO_V)), 0x80000000, "S1SO_V" },
+      { &(gfx->S2SO_H), (uint32_t)(sizeof(gfx->S2SO_H)), 0x80000000, "S2SO_H" },
+      { &(gfx->S2SO_V), (uint32_t)(sizeof(gfx->S2SO_V)), 0x80000000, "S2SO_V" },
+      { &(gfx->WBA_H), (uint32_t)(sizeof(gfx->WBA_H)),   0x80000000, "WBA_H" },
+      { &(gfx->WBA_V), (uint32_t)(sizeof(gfx->WBA_V)),   0x80000000, "WBA_V" },
+      { &(gfx->WSI_H), (uint32_t)(sizeof(gfx->WSI_H)),   0x80000000, "WSI_H" },
+      { &(gfx->WSI_V), (uint32_t)(sizeof(gfx->WSI_V)),   0x80000000, "WSI_V" },
+      { &(gfx->C_OVR), (uint32_t)1, 0x80000000 | 0x08000000, "C_OVR" },
+      { &(gfx->BLNK), (uint32_t)1,  0x80000000 | 0x08000000, "BLNK" },
+      { &(gfx->PO_H), (uint32_t)(sizeof(gfx->PO_H)), 0x80000000, "PO_H" },
+      { &(gfx->PO_V), (uint32_t)(sizeof(gfx->PO_V)), 0x80000000, "PO_V" },
+      { &(gfx->P_F), (uint32_t)(sizeof(gfx->P_F)),   0x80000000, "P_F" },
+      { &(gfx->BG_COL), (uint32_t)(sizeof(gfx->BG_COL)), 0x80000000, "BG_COL" },
+      { &(gfx->CONTROL_2D), (uint32_t)(sizeof(gfx->CONTROL_2D)), 0x80000000, "CONTROL_2D" },
+      { &(gfx->CONTROL_INT), (uint32_t)(sizeof(gfx->CONTROL_INT)), 0x80000000, "CONTROL_INT" },
+      { &(gfx->SCREEN_PERIOD), (uint32_t)(sizeof(gfx->SCREEN_PERIOD)), 0x80000000, "SCREEN_PERIOD" },
+      { &(gfx->K2GE_MODE), (uint32_t)(sizeof(gfx->K2GE_MODE)), 0x80000000, "K2GE_MODE" },
 
-      { (gfx->SPPLT), (uint32_t)(6), 0 | SF_FORCE_A8(gfx->SPPLT), "SPPLT" },
-      { (gfx->SCRP1PLT), (uint32_t)(6), 0 | SF_FORCE_A8(gfx->SCRP1PLT), "SCRP1PLT" },
-      { (gfx->SCRP2PLT), (uint32_t)(6), 0 | SF_FORCE_A8(gfx->SCRP2PLT), "SCRP2PLT" },
+      { (gfx->SPPLT), (uint32_t)(6), 0, "SPPLT" },
+      { (gfx->SCRP1PLT), (uint32_t)(6), 0, "SCRP1PLT" },
+      { (gfx->SCRP2PLT), (uint32_t)(6), 0, "SCRP2PLT" },
 
-      { &(gfx->winx), (uint32_t)(SF_IS_BOOL(&(gfx->winx)) ? 1 : sizeof(gfx->winx)), 0x80000000 | (SF_IS_BOOL(&(gfx->winx)) ? 0x08000000 : 0), "winx" },
-      { &(gfx->winw), (uint32_t)(SF_IS_BOOL(&(gfx->winw)) ? 1 : sizeof(gfx->winw)), 0x80000000 | (SF_IS_BOOL(&(gfx->winw)) ? 0x08000000 : 0), "winw" },
-      { &(gfx->winy), (uint32_t)(SF_IS_BOOL(&(gfx->winy)) ? 1 : sizeof(gfx->winy)), 0x80000000 | (SF_IS_BOOL(&(gfx->winy)) ? 0x08000000 : 0), "winy" },
-      { &(gfx->winh), (uint32_t)(SF_IS_BOOL(&(gfx->winh)) ? 1 : sizeof(gfx->winh)), 0x80000000 | (SF_IS_BOOL(&(gfx->winh)) ? 0x08000000 : 0), "winh" },
-      { &(gfx->scroll1x), (uint32_t)(SF_IS_BOOL(&(gfx->scroll1x)) ? 1 : sizeof(gfx->scroll1x)), 0x80000000 | (SF_IS_BOOL(&(gfx->scroll1x)) ? 0x08000000 : 0), "scroll1x" },
-      { &(gfx->scroll1y), (uint32_t)(SF_IS_BOOL(&(gfx->scroll1y)) ? 1 : sizeof(gfx->scroll1y)), 0x80000000 | (SF_IS_BOOL(&(gfx->scroll1y)) ? 0x08000000 : 0), "scroll1y" },
-      { &(gfx->scroll2x), (uint32_t)(SF_IS_BOOL(&(gfx->scroll2x)) ? 1 : sizeof(gfx->scroll2x)), 0x80000000 | (SF_IS_BOOL(&(gfx->scroll2x)) ? 0x08000000 : 0), "scroll2x" },
-      { &(gfx->scroll2y), (uint32_t)(SF_IS_BOOL(&(gfx->scroll2y)) ? 1 : sizeof(gfx->scroll2y)), 0x80000000 | (SF_IS_BOOL(&(gfx->scroll2y)) ? 0x08000000 : 0), "scroll2y" },
-      { &(gfx->scrollsprx), (uint32_t)(SF_IS_BOOL(&(gfx->scrollsprx)) ? 1 : sizeof(gfx->scrollsprx)), 0x80000000 | (SF_IS_BOOL(&(gfx->scrollsprx)) ? 0x08000000 : 0), "scrollsprx" },
-      { &(gfx->scrollspry), (uint32_t)(SF_IS_BOOL(&(gfx->scrollspry)) ? 1 : sizeof(gfx->scrollspry)), 0x80000000 | (SF_IS_BOOL(&(gfx->scrollspry)) ? 0x08000000 : 0), "scrollspry" },
-      { &(gfx->planeSwap), (uint32_t)(SF_IS_BOOL(&(gfx->planeSwap)) ? 1 : sizeof(gfx->planeSwap)), 0x80000000 | (SF_IS_BOOL(&(gfx->planeSwap)) ? 0x08000000 : 0), "planeSwap" },
-      { &(gfx->bgc), (uint32_t)(SF_IS_BOOL(&(gfx->bgc)) ? 1 : sizeof(gfx->bgc)), 0x80000000 | (SF_IS_BOOL(&(gfx->bgc)) ? 0x08000000 : 0), "bgc" },
-      { &(gfx->oowc), (uint32_t)(SF_IS_BOOL(&(gfx->oowc)) ? 1 : sizeof(gfx->oowc)), 0x80000000 | (SF_IS_BOOL(&(gfx->oowc)) ? 0x08000000 : 0), "oowc" },
+      { &(gfx->winx), (uint32_t)(sizeof(gfx->winx)), 0x80000000, "winx" },
+      { &(gfx->winw), (uint32_t)(sizeof(gfx->winw)), 0x80000000, "winw" },
+      { &(gfx->winy), (uint32_t)(sizeof(gfx->winy)), 0x80000000, "winy" },
+      { &(gfx->winh), (uint32_t)(sizeof(gfx->winh)), 0x80000000, "winh" },
+      { &(gfx->scroll1x), (uint32_t)(sizeof(gfx->scroll1x)), 0x80000000, "scroll1x" },
+      { &(gfx->scroll1y), (uint32_t)(sizeof(gfx->scroll1y)), 0x80000000, "scroll1y" },
+      { &(gfx->scroll2x), (uint32_t)(sizeof(gfx->scroll2x)), 0x80000000, "scroll2x" },
+      { &(gfx->scroll2y), (uint32_t)(sizeof(gfx->scroll2y)), 0x80000000, "scroll2y" },
+      { &(gfx->scrollsprx), (uint32_t)(sizeof(gfx->scrollsprx)), 0x80000000, "scrollsprx" },
+      { &(gfx->scrollspry), (uint32_t)(sizeof(gfx->scrollspry)), 0x80000000, "scrollspry" },
+      { &(gfx->planeSwap), (uint32_t)(sizeof(gfx->planeSwap)), 0x80000000, "planeSwap" },
+      { &(gfx->bgc), (uint32_t)(sizeof(gfx->bgc)), 0x80000000, "bgc" },
+      { &(gfx->oowc), (uint32_t)(sizeof(gfx->oowc)), 0x80000000, "oowc" },
 
-      { &(gfx->negative), (uint32_t)(SF_IS_BOOL(&(gfx->negative)) ? 1 : sizeof(gfx->negative)), 0x80000000 | (SF_IS_BOOL(&(gfx->negative)) ? 0x08000000 : 0), "negative" },
+      { &(gfx->negative), (uint32_t)(sizeof(gfx->negative)), 0x80000000, "negative" },
 
-      { (gfx->ScrollVRAM), (uint32_t)(4096), 0 | SF_FORCE_A8(gfx->ScrollVRAM), "ScrollVRAM" },
-      { (gfx->CharacterRAM), (uint32_t)(8192), 0 | SF_FORCE_A8(gfx->CharacterRAM), "CharacterRAM" },
-      { (gfx->SpriteVRAM), (uint32_t)(256), 0 | SF_FORCE_A8(gfx->SpriteVRAM), "SpriteVRAM" },
-      { (gfx->SpriteVRAMColor), (uint32_t)(0x40), 0 | SF_FORCE_A8(gfx->SpriteVRAMColor), "SpriteVRAMColor" },
-      { (gfx->ColorPaletteRAM), (uint32_t)(0x200), 0 | SF_FORCE_A8(gfx->ColorPaletteRAM), "ColorPaletteRAM" },
+      { (gfx->ScrollVRAM), (uint32_t)(4096), 0, "ScrollVRAM" },
+      { (gfx->CharacterRAM), (uint32_t)(8192), 0, "CharacterRAM" },
+      { (gfx->SpriteVRAM), (uint32_t)(256), 0, "SpriteVRAM" },
+      { (gfx->SpriteVRAMColor), (uint32_t)(0x40), 0, "SpriteVRAMColor" },
+      { (gfx->ColorPaletteRAM), (uint32_t)(0x200), 0, "ColorPaletteRAM" },
 
       { 0, 0, 0, 0 }
    };
@@ -789,11 +791,6 @@ void ngpgfx_SetLayerEnableMask(ngpgfx_t *gfx, uint64_t mask)
 
 void ngpgfx_write8(ngpgfx_t *gfx, uint32 address, uint8 data)
 {
-#if 0
-   if(address >= 0x8032 && address <= 0x8035)
-      printf("%08x %02x %d\n", address, data, ngpc_soundTS);
-#endif
-
    if(address >= 0x9000 && address <= 0x9fff)
       gfx->ScrollVRAM[address - 0x9000] = data;
    else if(address >= 0xa000 && address <= 0xbfff)
@@ -911,8 +908,8 @@ void ngpgfx_write8(ngpgfx_t *gfx, uint32 address, uint8 data)
       case 0x87e0:
          if(data == 0x52) 
          {
-            puts("GEreset");
-            reset(); 
+            /* GEreset */
+            neopop_reset(); 
          }
          break;
       case 0x87e2:

@@ -15,15 +15,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "mednafen.h"
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <vector>
 
 #include "general.h"
+#include "mednafen-types.h"
 #include "mempatcher.h"
+#include "settings.h"
 
 #ifdef _WIN32
 #include "compat/msvc.h"
@@ -99,7 +101,7 @@ static void RebuildSubCheats(void)
    }
 }
 
-bool MDFNMP_Init(uint32 ps, uint32 numpages)
+extern "C" bool MDFNMP_Init(uint32 ps, uint32 numpages)
 {
    PageSize = ps;
    NumPages = numpages;
@@ -110,7 +112,7 @@ bool MDFNMP_Init(uint32 ps, uint32 numpages)
    return(1);
 }
 
-void MDFNMP_Kill(void)
+extern "C" void MDFNMP_Kill(void)
 {
    if(RAMPtrs)
    {
@@ -119,8 +121,7 @@ void MDFNMP_Kill(void)
    }
 }
 
-
-void MDFNMP_AddRAM(uint32 size, uint32 A, uint8 *RAM)
+extern "C" void MDFNMP_AddRAM(uint32 size, uint32 A, uint8 *RAM)
 {
    unsigned x;
    uint32_t AB = A / PageSize;
@@ -135,32 +136,17 @@ void MDFNMP_AddRAM(uint32 size, uint32 A, uint8 *RAM)
    }
 }
 
-void MDFNMP_InstallReadPatches(void)
+extern "C" void MDFNMP_InstallReadPatches(void)
 {
    unsigned x;
    std::vector<SUBCHEAT>::iterator chit;
 
    if(!CheatsActive)
       return;
-
-#if 0
-   for(x = 0; x < 8; x++)
-   {
-      for(chit = SubCheats[x].begin(); chit != SubCheats[x].end(); chit++)
-      {
-         if(MDFNGameInfo->InstallReadPatch)
-            MDFNGameInfo->InstallReadPatch(chit->addr);
-      }
-   }
-#endif
 }
 
 void MDFNMP_RemoveReadPatches(void)
 {
-#if 0
-   if(MDFNGameInfo->RemoveReadPatches)
-      MDFNGameInfo->RemoveReadPatches();
-#endif
 }
 
 /* This function doesn't allocate any memory for "name" */
@@ -182,12 +168,12 @@ static int AddCheatEntry(char *name, char *conditions, uint32 addr, uint64 val, 
    return(1);
 }
 
-void MDFN_LoadGameCheats(void *override_ptr)
+extern "C" void MDFN_LoadGameCheats(void)
 {
    RebuildSubCheats();
 }
 
-void MDFN_FlushGameCheats(int nosave)
+extern "C" void MDFN_FlushGameCheats(void)
 {
    std::vector<CHEATF>::iterator chit;
 
@@ -272,19 +258,10 @@ static bool TestConditions(const char *string)
    unsigned int bytelen;
    bool passed = 1;
 
-   //printf("TR: %s\n", string);
    while(sscanf(string, "%u %c %63s %63s %63s", &bytelen, &endian, address, operation, value) == 5 && passed)
    {
       uint64 v_value;
       uint64 value_at_address;
-#if 0
-      uint32 v_address;
-
-      if(address[0] == '0' && address[1] == 'x')
-         v_address = strtoul(address + 2, NULL, 16);
-      else
-         v_address = strtoul(address, NULL, 10);
-#endif
 
       if(value[0] == '0' && value[1] == 'x')
          v_value = strtoull(value + 2, NULL, 16);
@@ -292,20 +269,7 @@ static bool TestConditions(const char *string)
          v_value = strtoull(value, NULL, 0);
 
       value_at_address = 0;
-#if 0
-      for(unsigned int x = 0; x < bytelen; x++)
-      {
-         unsigned int shiftie;
 
-         if(endian == 'B')
-            shiftie = (bytelen - 1 - x) * 8;
-         else
-            shiftie = x * 8;
-         value_at_address |= MDFNGameInfo->MemRead(v_address + x) << shiftie;
-      }
-#endif
-
-      //printf("A: %08x, V: %08llx, VA: %08llx, OP: %s\n", v_address, v_value, value_at_address, operation);
       if(!strcmp(operation, ">="))
       {
          if(!(value_at_address >= v_value))
@@ -366,20 +330,16 @@ static bool TestConditions(const char *string)
          if(value_at_address | v_value)
             passed = 0;
       }
-      else
-         puts("Invalid operation");
       string = strchr(string, ',');
-      if(string == NULL)
+      if(!string)
          break;
-      else
-         string++;
-      //printf("Foo: %s\n", string);
+      string++;
    }
 
    return(passed);
 }
 
-void MDFNMP_ApplyPeriodicCheats(void)
+extern "C" void MDFNMP_ApplyPeriodicCheats(void)
 {
    std::vector<CHEATF>::iterator chit;
 
@@ -477,13 +437,11 @@ int MDFNI_SetCheat(uint32 which, const char *name, uint32 a, uint64 v, uint64 co
    {
       char *t;
 
-      if((t=(char *)realloc(next->name,strlen(name+1))))
-      {
-         next->name=t;
-         strcpy(next->name,name);
-      }
-      else
+      if(!(t=(char *)realloc(next->name,strlen(name)+1)))
          return(0);
+
+      next->name=t;
+      strcpy(next->name,name);
    }
    next->addr=a;
    next->val=v;
@@ -517,10 +475,3 @@ static void SettingChanged(const char *name)
 
    MDFNMP_InstallReadPatches();
 }
-
-
-MDFNSetting MDFNMP_Settings[] =
-{
- { "cheats", MDFNSF_NOFLAGS, "Enable cheats.", NULL, MDFNST_BOOL, "1", NULL, NULL, NULL, SettingChanged },
- { NULL}
-};

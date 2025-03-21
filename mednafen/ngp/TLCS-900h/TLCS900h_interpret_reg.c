@@ -70,7 +70,7 @@
 //=========================================================================
 
 //===== LD r,#
-void regLDi()
+void regLDi(void)
 {
 	switch(size)
 	{
@@ -81,7 +81,7 @@ void regLDi()
 }
 
 //===== PUSH r
-void regPUSH()
+void regPUSH(void)
 {
 	switch(size)
 	{
@@ -92,7 +92,7 @@ void regPUSH()
 }
 
 //===== POP r
-void regPOP()
+void regPOP(void)
 {
 	switch(size)
 	{
@@ -103,7 +103,7 @@ void regPOP()
 }
 
 //===== CPL r
-void regCPL()
+void regCPL(void)
 {
 	switch(size)
 	{
@@ -117,7 +117,7 @@ void regCPL()
 }
 
 //===== NEG r
-void regNEG()
+void regNEG(void)
 {
 	switch(size)
 	{
@@ -128,16 +128,9 @@ void regNEG()
 }
 
 //===== MUL rr,#
-void regMULi()
+void regMULi(void)
 {
 	uint8 target = get_rr_Target();
-	if (target == 0x80)
-	{
-#ifdef NEOPOP_DEBUG
-		instruction_error("reg: MULi bad \'rr\' dst code");
-#endif
-		return;
-	}
 
 	switch(size)
 	{
@@ -149,14 +142,9 @@ void regMULi()
 }
 
 //===== MULS rr,#
-void regMULSi()
+void regMULSi(void)
 {
 	uint8 target = get_rr_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: MULSi bad \'rr\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -168,14 +156,9 @@ void regMULSi()
 }
 
 //===== DIV rr,#
-void regDIVi()
+void regDIVi(void)
 {
 	uint8 target = get_rr_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: DIVi bad \'rr\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -190,14 +173,9 @@ void regDIVi()
 }
 
 //===== DIVS rr,#
-void regDIVSi()
+void regDIVSi(void)
 {
 	uint8 target = get_rr_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: DIVSi bad \'rr\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -212,7 +190,7 @@ void regDIVSi()
 }
 
 //===== LINK r,dd
-void regLINK()
+void regLINK(void)
 {
 	int16 d = (int16)fetch16();
 	push32(rCodeL(rCode));
@@ -222,7 +200,7 @@ void regLINK()
 }
 
 //===== UNLK r
-void regUNLK()
+void regUNLK(void)
 {
 	REGXSP = rCodeL(rCode);
 	rCodeL(rCode) = pop32();
@@ -230,7 +208,7 @@ void regUNLK()
 }
 
 //===== BS1F A,r
-void regBS1F()
+void regBS1F(void)
 {
 	uint16 data = rCodeW(rCode), mask = 0x0001;
 	uint8 i;
@@ -252,7 +230,7 @@ void regBS1F()
 }
 
 //===== BS1B A,r
-void regBS1B()
+void regBS1B(void)
 {
 	uint16 data = rCodeW(rCode), mask = 0x8000;
 	uint8 i;
@@ -274,7 +252,7 @@ void regBS1B()
 }
 
 //===== DAA r
-void regDAA()
+void regDAA(void)
 {
 	uint16 resultC;
 	uint8 src = rCodeB(rCode), result, added = 0, half;
@@ -338,7 +316,7 @@ void regDAA()
 }
 
 //===== EXTZ r
-void regEXTZ()
+void regEXTZ(void)
 {
 	switch(size)
 	{
@@ -350,7 +328,7 @@ void regEXTZ()
 }
 
 //===== EXTS r
-void regEXTS()
+void regEXTS(void)
 {
 	switch(size)
 	{
@@ -369,7 +347,7 @@ void regEXTS()
 }
 
 //===== PAA r
-void regPAA()
+void regPAA(void)
 {
 	switch(size)
 	{
@@ -380,7 +358,7 @@ void regPAA()
 }
 
 //===== MIRR r
-void regMIRR()
+void regMIRR(void)
 {
 	uint16 src = rCodeW(rCode), dst = 0, bit;
 
@@ -396,7 +374,7 @@ void regMIRR()
 }
 
 //===== MULA rr
-void regMULA()
+void regMULA(void)
 {
 	uint32 src = (int16)loadW(regL(2/*XDE*/)) * (int16)loadW(regL(3/*XHL*/));
 	uint32 dst = rCodeL(rCode);
@@ -413,7 +391,7 @@ void regMULA()
 }
 
 //===== DJNZ r,d
-void regDJNZ()
+void regDJNZ(void)
 {
 	int8 offset = FETCH8;
 
@@ -442,7 +420,7 @@ void regDJNZ()
 }
 
 //===== ANDCF #,r
-void regANDCFi()
+void regANDCFi(void)
 {
 	uint8 data, bit = FETCH8 & 0xF;
 	switch(size)
@@ -459,7 +437,7 @@ void regANDCFi()
 }
 
 //===== ORCF #,r
-void regORCFi()
+void regORCFi(void)
 {
 	uint8 data, bit = FETCH8 & 0xF;
 	switch(size)
@@ -476,7 +454,7 @@ void regORCFi()
 }
 
 //===== XORCF #,r
-void regXORCFi()
+void regXORCFi(void)
 {
 	uint8 data, bit = FETCH8 & 0xF;
 	switch(size)
@@ -493,7 +471,7 @@ void regXORCFi()
 }
 
 //===== LDCF #,r
-void regLDCFi()
+void regLDCFi(void)
 {
 	uint8 bit = FETCH8 & 0xF;
 	switch(size)
@@ -513,7 +491,7 @@ void regLDCFi()
 }
 
 //===== STCF #,r
-void regSTCFi()
+void regSTCFi(void)
 {
 	uint8 bit = FETCH8 & 0xF;
 	switch(size)
@@ -533,7 +511,7 @@ void regSTCFi()
 }
 
 //===== ANDCF A,r
-void regANDCFA()
+void regANDCFA(void)
 {
 	uint8 data, bit = REGA & 0xF;
 	switch(size)
@@ -550,7 +528,7 @@ void regANDCFA()
 }
 
 //===== ORCF A,r
-void regORCFA()
+void regORCFA(void)
 {
 	uint8 data, bit = REGA & 0xF;
 	switch(size)
@@ -567,7 +545,7 @@ void regORCFA()
 }
 
 //===== XORCF A,r
-void regXORCFA()
+void regXORCFA(void)
 {
 	uint8 data, bit = REGA & 0xF;
 	switch(size)
@@ -584,7 +562,7 @@ void regXORCFA()
 }
 
 //===== LDCF A,r
-void regLDCFA()
+void regLDCFA(void)
 {
 	uint8 bit = REGA & 0xF;
 	uint32 mask = (1 << bit);
@@ -599,7 +577,7 @@ void regLDCFA()
 }
 
 //===== STCF A,r
-void regSTCFA()
+void regSTCFA(void)
 {
 	switch(size)
 	{
@@ -620,7 +598,7 @@ void regSTCFA()
 }
 
 //===== LDC cr,r
-void regLDCcrr()
+void regLDCcrr(void)
 {
 	uint8 cr = FETCH8;
 
@@ -635,7 +613,7 @@ void regLDCcrr()
 }
 
 //===== LDC r,cr
-void regLDCrcr()
+void regLDCrcr(void)
 {
 	uint8 cr = FETCH8;
 
@@ -650,7 +628,7 @@ void regLDCrcr()
 }
 
 //===== RES #,r
-void regRES()
+void regRES(void)
 {
 	uint8 b = FETCH8 & 0xF;
 
@@ -664,7 +642,7 @@ void regRES()
 }
 
 //===== SET #,r
-void regSET()
+void regSET(void)
 {
 	uint8 b = FETCH8 & 0xF;
 
@@ -678,7 +656,7 @@ void regSET()
 }
 
 //===== CHG #,r
-void regCHG()
+void regCHG(void)
 {
 	uint8 b = FETCH8 & 0xF;
 
@@ -692,7 +670,7 @@ void regCHG()
 }
 
 //===== BIT #,r
-void regBIT()
+void regBIT(void)
 {
 	uint8 b = FETCH8 & 0xF;
 	
@@ -708,7 +686,7 @@ void regBIT()
 }
 
 //===== TSET #,r
-void regTSET()
+void regTSET(void)
 {
 	uint8 b = FETCH8 & 0xF;
 	
@@ -729,7 +707,7 @@ void regTSET()
 }
 
 //===== MINC1 #,r
-void regMINC1()
+void regMINC1(void)
 {
 	uint16 num = fetch16() + 1;
 
@@ -745,7 +723,7 @@ void regMINC1()
 }
 
 //===== MINC2 #,r
-void regMINC2()
+void regMINC2(void)
 {
 	uint16 num = fetch16() + 2;
 
@@ -761,7 +739,7 @@ void regMINC2()
 }
 
 //===== MINC4 #,r
-void regMINC4()
+void regMINC4(void)
 {
 	uint16 num = fetch16() + 4;
 
@@ -777,7 +755,7 @@ void regMINC4()
 }
 
 //===== MDEC1 #,r
-void regMDEC1()
+void regMDEC1(void)
 {
 	uint16 num = fetch16() + 1;
 
@@ -793,7 +771,7 @@ void regMDEC1()
 }
 
 //===== MDEC2 #,r
-void regMDEC2()
+void regMDEC2(void)
 {
 	uint16 num = fetch16() + 2;
 
@@ -809,7 +787,7 @@ void regMDEC2()
 }
 
 //===== MDEC4 #,r
-void regMDEC4()
+void regMDEC4(void)
 {
 	uint16 num = fetch16() + 4;
 
@@ -825,14 +803,9 @@ void regMDEC4()
 }
 
 //===== MUL RR,r
-void regMUL()
+void regMUL(void)
 {
 	uint8 target = get_RR_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: MUL bad \'RR\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -844,14 +817,9 @@ void regMUL()
 }
 
 //===== MULS RR,r
-void regMULS()
+void regMULS(void)
 {
 	uint8 target = get_RR_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: MUL bad \'RR\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -863,14 +831,9 @@ void regMULS()
 }
 
 //===== DIV RR,r
-void regDIV()
+void regDIV(void)
 {
 	uint8 target = get_RR_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: DIV bad \'RR\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -885,14 +848,9 @@ void regDIV()
 }
 
 //===== DIVS RR,r
-void regDIVS()
+void regDIVS(void)
 {
 	uint8 target = get_RR_Target();
-	if (target == 0x80)
-	{
-		instruction_error("reg: DIVS bad \'RR\' dst code");
-		return;
-	}
 
 	switch(size)
 	{
@@ -907,7 +865,7 @@ void regDIVS()
 }
 
 //===== INC #3,r
-void regINC()
+void regINC(void)
 {
 	uint8 val = R;
 	if (val == 0)
@@ -939,7 +897,7 @@ void regINC()
 }
 
 //===== DEC #3,r
-void regDEC()
+void regDEC(void)
 {
 	uint8 val = R;
 	if (val == 0)
@@ -970,7 +928,7 @@ void regDEC()
 }
 
 //===== SCC cc,r
-void regSCC()
+void regSCC(void)
 {
 	uint32 result;
 
@@ -989,7 +947,7 @@ void regSCC()
 }
 
 //===== LD R,r
-void regLDRr()
+void regLDRr(void)
 {
 	switch(size)
 	{
@@ -1002,7 +960,7 @@ void regLDRr()
 }
 
 //===== LD r,R
-void regLDrR()
+void regLDrR(void)
 {
 	switch(size)
 	{
@@ -1015,7 +973,7 @@ void regLDrR()
 }
 
 //===== ADD R,r
-void regADD()
+void regADD(void)
 {
 	switch(size)
 	{
@@ -1026,7 +984,7 @@ void regADD()
 }
 
 //===== ADC R,r
-void regADC()
+void regADC(void)
 {
 	switch(size)
 	{
@@ -1037,7 +995,7 @@ void regADC()
 }
 
 //===== SUB R,r
-void regSUB()
+void regSUB(void)
 {
 	switch(size)
 	{
@@ -1048,7 +1006,7 @@ void regSUB()
 }
 
 //===== SBC R,r
-void regSBC()
+void regSBC(void)
 {
 	switch(size)
 	{
@@ -1059,7 +1017,7 @@ void regSBC()
 }
 
 //===== LD r,#3
-void regLDr3()
+void regLDr3(void)
 {
 	switch(size)
 	{
@@ -1072,7 +1030,7 @@ void regLDr3()
 }
 
 //===== EX R,r
-void regEX()
+void regEX(void)
 {
 	switch(size)
 	{
@@ -1085,7 +1043,7 @@ void regEX()
 }
 
 //===== ADD r,#
-void regADDi()
+void regADDi(void)
 {
 	switch(size)
 	{
@@ -1096,7 +1054,7 @@ void regADDi()
 }
 
 //===== ADC r,#
-void regADCi()
+void regADCi(void)
 {
 	switch(size)
 	{
@@ -1107,7 +1065,7 @@ void regADCi()
 }
 
 //===== SUB r,#
-void regSUBi()
+void regSUBi(void)
 {
 	switch(size)
 	{
@@ -1118,7 +1076,7 @@ void regSUBi()
 }
 
 //===== SBC r,#
-void regSBCi()
+void regSBCi(void)
 {
 	switch(size)
 	{
@@ -1129,7 +1087,7 @@ void regSBCi()
 }
 
 //===== CP r,#
-void regCPi()
+void regCPi(void)
 {
 	switch(size)
 	{
@@ -1140,7 +1098,7 @@ void regCPi()
 }
 
 //===== AND r,#
-void regANDi()
+void regANDi(void)
 {
 	switch(size)
 	{
@@ -1174,7 +1132,7 @@ void regANDi()
 }
 
 //===== OR r,#
-void regORi()
+void regORi(void)
 {
 	switch(size)
 	{
@@ -1208,7 +1166,7 @@ void regORi()
 }
 
 //===== XOR r,#
-void regXORi()
+void regXORi(void)
 {
 	switch(size)
 	{
@@ -1242,7 +1200,7 @@ void regXORi()
 }
 
 //===== AND R,r
-void regAND()
+void regAND(void)
 {
 	switch(size)
 	{
@@ -1276,7 +1234,7 @@ void regAND()
 }
 
 //===== OR R,r
-void regOR()
+void regOR(void)
 {
 	switch(size)
 	{
@@ -1310,7 +1268,7 @@ void regOR()
 }
 
 //===== XOR R,r
-void regXOR()
+void regXOR(void)
 {
 	switch(size)
 	{
@@ -1344,7 +1302,7 @@ void regXOR()
 }
 
 //===== CP r,#3
-void regCPr3()
+void regCPr3(void)
 {	
 	switch(size)
 	{
@@ -1356,7 +1314,7 @@ void regCPr3()
 }
 
 //===== CP R,r
-void regCP()
+void regCP(void)
 {
 	switch(size)
 	{
@@ -1367,7 +1325,7 @@ void regCP()
 }
 
 //===== RLC #,r
-void regRLCi()
+void regRLCi(void)
 {
 	int i;
 	uint8 sa = FETCH8 & 0xF;
@@ -1416,7 +1374,7 @@ void regRLCi()
 }
 
 //===== RRC #,r
-void regRRCi()
+void regRRCi(void)
 {
 	int i;
 	uint8 sa = FETCH8 & 0xF;
@@ -1608,7 +1566,7 @@ void regRRi(void)
 }
 
 //===== SLA #,r
-void regSLAi()
+void regSLAi(void)
 {
 	int8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
@@ -1654,7 +1612,7 @@ void regSLAi()
 }
 
 //===== SRA #,r
-void regSRAi()
+void regSRAi(void)
 {
 	int8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
@@ -1700,7 +1658,7 @@ void regSRAi()
 }
 
 //===== SLL #,r
-void regSLLi()
+void regSLLi(void)
 {
 	uint8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
@@ -1746,7 +1704,7 @@ void regSLLi()
 }
 
 //===== SRL #,r
-void regSRLi()
+void regSRLi(void)
 {
 	uint8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
@@ -1792,7 +1750,7 @@ void regSRLi()
 }
 
 //===== RLC A,r
-void regRLCA()
+void regRLCA(void)
 {
 	int i;
 	uint8 sa = REGA & 0xF;
@@ -1841,7 +1799,7 @@ void regRLCA()
 }
 
 //===== RRC A,r
-void regRRCA()
+void regRRCA(void)
 {
 	int i;
 	uint8 sa = REGA & 0xF;
@@ -2030,7 +1988,7 @@ void regRRA(void)
 }
 
 //===== SLA A,r
-void regSLAA()
+void regSLAA(void)
 {
 	int8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;
@@ -2076,7 +2034,7 @@ void regSLAA()
 }
 
 //===== SRA A,r
-void regSRAA()
+void regSRAA(void)
 {
 	int8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;
@@ -2122,7 +2080,7 @@ void regSRAA()
 }
 
 //===== SLL A,r
-void regSLLA()
+void regSLLA(void)
 {
 	uint8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;
@@ -2168,7 +2126,7 @@ void regSLLA()
 }
 
 //===== SRL A,r
-void regSRLA()
+void regSRLA(void)
 {
 	uint8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;

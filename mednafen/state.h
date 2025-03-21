@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <retro_inline.h>
+#include <boolean.h>
 
 /* Flag for a single, >= 1 byte native-endian variable */
 #define MDFNSTATE_RLSB            0x80000000
@@ -41,24 +42,14 @@ struct SSDescriptor
 {
    SFORMAT *sf;
    const char *name;
-   bool optional;
 };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Eh, we abuse the smem_* in-memory stream code
- * in a few other places. :) */
-int32_t smem_read(StateMem *st, void *buffer, uint32_t len);
-int32_t smem_write(StateMem *st, void *buffer, uint32_t len);
-int32_t smem_putc(StateMem *st, int value);
-int32_t smem_seek(StateMem *st, uint32_t offset, int whence);
-int smem_write32le(StateMem *st, uint32_t b);
-int smem_read32le(StateMem *st, uint32_t *b);
-
 int MDFNSS_SaveSM(void *st, int a, int b, const void *c, const void *d, const void *e);
-int MDFNSS_LoadSM(void *st, int a, int b);
+void MDFNSS_LoadSM(void *st, int a, int b);
 
 int MDFNSS_StateAction(void *st, int load, int data_only, SFORMAT *sf, const char *name, bool optional);
 
